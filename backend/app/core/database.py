@@ -8,3 +8,14 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------
+# Async SQLAlchemy Engine
+# ---------------------------
+engine: AsyncEngine = create_async_engine(
+    settings.DATABASE_URL,
+    echo=settings.DB_ECHO,
+    future=True,
+    pool_pre_ping=True,  # Helps prevent disconnect errors
+)
+
