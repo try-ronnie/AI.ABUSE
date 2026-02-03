@@ -31,4 +31,33 @@ async_session = sessionmaker(
 )
 
 
+# ---------------------------
+# Startup: Initialize DB
+# ---------------------------
+async def init_db() -> None:
+    """
+    Called on FastAPI startup.
+    - Tests DB connection
+    - Can optionally create tables (SQLModel.metadata.create_all)
+    """
+    try:
+        async with engine.begin() as conn:
+            # Test connection
+            await conn.run_sync(lambda sync_conn: None)
+        logger.info("✅ Database connection successful")
+    except SQLAlchemyError as e:
+        logger.error(f"❌ Database connection failed: {e}")
+        raise
+
+# ---------------------------
+# Shutdown: Close DB
+# ---------------------------
+async def close_db() -> None:
+    """
+    Called on FastAPI shutdown.
+    - Dispose engine / connection pool
+    """
+    await engine.dispose()
+    logger.info("🛑 Database connection pool disposed")
+
 
