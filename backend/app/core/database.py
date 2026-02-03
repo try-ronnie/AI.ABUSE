@@ -19,3 +19,16 @@ engine: AsyncEngine = create_async_engine(
     pool_pre_ping=True,  # Helps prevent disconnect errors
 )
 
+# ---------------------------
+# Async Session Maker
+# ---------------------------
+async_session = sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+    autoflush=False,
+    future=True,
+)
+
+
+
