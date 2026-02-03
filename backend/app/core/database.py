@@ -1,10 +1,10 @@
-from typing import AsyncGenerator
-import logging
+# File: app/core/database.py
+# Purpose: Async database setup and lifecycle for Farmart
 
+import logging
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
-
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,6 @@ async_session = sessionmaker(
     autoflush=False,
     future=True,
 )
-
 
 # ---------------------------
 # Startup: Initialize DB
@@ -60,4 +59,17 @@ async def close_db() -> None:
     await engine.dispose()
     logger.info("🛑 Database connection pool disposed")
 
-
+# ---------------------------
+# Optional helper for dependency injection
+# ---------------------------
+async def get_session() -> AsyncSession:
+    """
+    FastAPI dependency for async DB session.
+    Usage in routes/services:
+    ```
+    async def some_route(db: AsyncSession = Depends(get_session)):
+        ...
+    ```
+    """
+    async with async_session() as session:
+        yield session
