@@ -19,7 +19,7 @@ import logging
 
 from app.core.config import settings
 from app.core.database import init_db, close_db
-from app.api.v1 import auth, animals, cart, orders, payments
+from app.api.v1 import auth, animals, cart, orders, payments, users
 
 # Configure logging
 logging.basicConfig(
@@ -27,6 +27,7 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
 
 def create_app() -> FastAPI:
     """
@@ -65,12 +66,14 @@ def create_app() -> FastAPI:
             allowed_hosts=settings.ALLOWED_HOSTS,
         )
 
-    # Mount routers
-    app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
-    app.include_router(animals.router, prefix="/api/v1/animals", tags=["animals"])
-    app.include_router(cart.router, prefix="/api/v1/cart", tags=["cart"])
-    app.include_router(orders.router, prefix="/api/v1/orders", tags=["orders"])
-    app.include_router(payments.router, prefix="/api/v1/payments", tags=["payments"])
+    # Mount routers under /api/v1 prefix
+    # Note: Each router already has its own prefix (e.g., /auth, /animals)
+    app.include_router(auth.router, prefix="/api/v1")
+    app.include_router(users.router, prefix="/api/v1")
+    app.include_router(animals.router, prefix="/api/v1")
+    app.include_router(cart.router, prefix="/api/v1")
+    app.include_router(orders.router, prefix="/api/v1")
+    app.include_router(payments.router, prefix="/api/v1")
 
     # Health check
     @app.get("/health", tags=["health"])
@@ -113,4 +116,4 @@ if __name__ == "__main__":
         host=settings.SERVER_HOST or "0.0.0.0",
         port=int(settings.SERVER_PORT or 8000),
         reload=settings.DEBUG,
- b   )
+    )
