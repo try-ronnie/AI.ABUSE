@@ -4,6 +4,7 @@
 JWT, password hashing, and role-based dependencies
 """
 
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
@@ -19,6 +20,8 @@ from sqlalchemy import select
 from app.core.config import settings
 from app.core.database import get_session
 
+logger = logging.getLogger(__name__)
+
 # Password hashing - using bcrypt directly to avoid passlib compatibility issues
 def hash_password(password: str) -> str:
     """Hash password using bcrypt"""
@@ -29,10 +32,14 @@ def hash_password(password: str) -> str:
 
 
 def verify_password(password: str, hashed: str) -> bool:
-    """Verify password against hash"""
-    password_bytes = password.encode('utf-8')
-    hashed_bytes = hashed.encode('utf-8')
-    return bcrypt.checkpw(password_bytes, hashed_bytes)
+    """Verify password against hash with error handling"""
+    try:
+        password_bytes = password.encode('utf-8')
+        hashed_bytes = hashed.encode('utf-8')
+        return bcrypt.checkpw(password_bytes, hashed_bytes)
+    except Exception as e:
+        logger.error(f"Password verification error: {e}")
+        return False
 
 
 # OAuth2 bearer

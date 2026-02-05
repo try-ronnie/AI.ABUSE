@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
     
     # CORS
-    CORS_ORIGINS: Optional[List[str]] = ["*"]
+    CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
     ALLOWED_HOSTS: Optional[List[str]] = None
     
     # Middleware
