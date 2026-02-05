@@ -51,6 +51,13 @@ def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta]
     return _create_token(data, expires_delta)
 
 
+def create_refresh_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
+    """Create a refresh token with longer expiration (default 7 days)"""
+    if expires_delta is None:
+        expires_delta = timedelta(days=7)
+    return _create_token(data, expires_delta)
+
+
 def decode_token(token: str) -> Dict[str, Any]:
     try:
         return jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])

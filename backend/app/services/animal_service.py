@@ -1,9 +1,10 @@
 # app/services/animal_service.py
 
 from typing import List, Optional
-from sqlmodel import select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.animal import Animal
+
 
 class AnimalService:
     def __init__(self, session: AsyncSession):
@@ -16,7 +17,7 @@ class AnimalService:
         stmt = select(Animal)
         if available_only:
             stmt = stmt.where(Animal.available == True)
-        result = await self.session.exec(stmt)
+        result = await self.session.execute(stmt)
         return result.scalars().all()
 
     async def create(self, data: dict) -> Animal:

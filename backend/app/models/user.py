@@ -30,7 +30,6 @@ class User(SQLModel, table=True):
 
     # Relationships
     farmer_profile: Optional["Farmer"] = Relationship(back_populates="user")
-    animals: Optional[List["Animal"]] = Relationship(back_populates="farmer")
     orders: Optional[List["Order"]] = Relationship(back_populates="buyer")
     cart_items: Optional[List["CartItem"]] = Relationship(back_populates="buyer")
 

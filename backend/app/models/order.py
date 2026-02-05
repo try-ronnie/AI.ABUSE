@@ -6,18 +6,19 @@ SQLModel models for Orders & OrderItems
 Responsibilities:
 - Define the Order table (buyer orders)
 - Define OrderItem table (items within an order)
-- Track relationships to Animal and User
+- Track relationships to Animal, User, and Payment
 - Keep models lean; no business logic
 """
 
 from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
 from sqlmodel import SQLModel, Field, Relationship
-from sqlalchemy import Column, DateTime, Float, String, Boolean, func
+from sqlalchemy import Column, DateTime, func
 
 if TYPE_CHECKING:
     from app.models.user import User  # type: ignore
     from app.models.animal import Animal  # type: ignore
+    from app.models.payment import Payment  # type: ignore
 
 
 class Order(SQLModel, table=True):
@@ -41,6 +42,7 @@ class Order(SQLModel, table=True):
     # Relationships
     buyer: Optional["User"] = Relationship(back_populates="orders")
     items: Optional[List["OrderItem"]] = Relationship(back_populates="order")
+    payment: Optional["Payment"] = Relationship(back_populates="order")
 
 
 class OrderItem(SQLModel, table=True):

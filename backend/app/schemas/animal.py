@@ -1,64 +1,63 @@
-# app/schemas/cart.py
+# app/schemas/animal.py
 
 """
-Pydantic schemas for Cart & CartItems
+Pydantic schemas for Animals
 
 Responsibilities:
-- Define request/response payloads for cart operations
+- Define request/response payloads for animal operations
 - Keep schemas lean; no DB logic
 - Separate Create, Update, and Read payloads
 """
 
-from typing import Optional, List
+from typing import Optional
 from datetime import datetime
-from pydantic import BaseModel, Field, conint, confloat
+from pydantic import BaseModel, Field, confloat
 
 
 # ----------------------------
-# CartItem Schemas
+# Animal Schemas
 # ----------------------------
-class CartItemCreate(BaseModel):
+class AnimalCreate(BaseModel):
     """
-    Payload for adding an item to the cart.
+    Payload for creating a new animal.
     """
-    animal_id: int
-    quantity: conint(gt=0) = 1
+    name: str = Field(..., min_length=1, max_length=100)
+    species: str = Field(default="unknown", max_length=50)
+    breed: Optional[str] = Field(default=None, max_length=50)
+    age: Optional[int] = Field(default=None, ge=0)
+    gender: Optional[str] = Field(default=None, max_length=20)
+    price: confloat(ge=0.0) = 0.0
+    available: Optional[bool] = True
 
 
-class CartItemUpdate(BaseModel):
+class AnimalUpdate(BaseModel):
     """
-    Payload for updating an existing cart item.
+    Payload for updating an existing animal.
     All fields optional — only provided fields will be applied.
     """
-    quantity: Optional[conint(gt=0)] = None
+    name: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    species: Optional[str] = Field(default=None, max_length=50)
+    breed: Optional[str] = Field(default=None, max_length=50)
+    age: Optional[int] = Field(default=None, ge=0)
+    gender: Optional[str] = Field(default=None, max_length=20)
     price: Optional[confloat(ge=0.0)] = None
+    available: Optional[bool] = None
 
 
-class CartItemRead(BaseModel):
+class AnimalRead(BaseModel):
     """
-    Representation returned by the API for a cart item.
+    Representation returned by the API for an animal.
     """
     id: int
-    buyer_id: int
-    animal_id: int
-    quantity: int
+    name: str
+    species: str
+    breed: Optional[str] = None
+    age: Optional[int] = None
+    gender: Optional[str] = None
     price: float
+    available: bool
+    farmer_id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    class Config:
-        orm_mode = True
-
-
-# ----------------------------
-# Cart Schemas (optional wrapper)
-# ----------------------------
-class CartRead(BaseModel):
-    """
-    Representation of a buyer's cart.
-    """
-    buyer_id: int
-    items: List[CartItemRead] = []
-
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
