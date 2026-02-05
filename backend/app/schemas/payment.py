@@ -1,31 +1,34 @@
+"""
+Pydantic schemas for Payments
+
+Responsibilities:
+- Define request/response payloads for payment operations
+- Keep schemas lean; no DB logic
+- Separate Create, Update, and Read payloads
+"""
+
 from typing import Optional
 from datetime import datetime
-
 from pydantic import BaseModel, Field, confloat
 
-
-# ----------------------------
-# Payment Schemas
-# ----------------------------
 class PaymentCreate(BaseModel):
-    """
-    Payload to initiate a payment for an order.
-    """
     order_id: int
-    amount: confloat(gt=0.0)
-    method: str = Field(..., description="e.g. mpesa, card, cash")
+    buyer_id: int
+    amount: confloat(ge=0.0)
+    provider: Optional[str] = "mpesa"
+
+
+class PaymentUpdate(BaseModel):
+    status: Optional[str] = Field(default=None)  # pending, completed, failed
 
 
 class PaymentRead(BaseModel):
-    """
-    Representation returned by the API for a payment.
-    """
     id: int
     order_id: int
+    buyer_id: int
     amount: float
-    method: str
-    status: str  # pending, successful, failed
-    transaction_ref: Optional[str] = None
+    status: str
+    provider: Optional[str]
     created_at: datetime
     updated_at: Optional[datetime] = None
 
