@@ -1,3 +1,5 @@
+# app/api/v1/orders.py
+
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -9,10 +11,7 @@ from app.core.security import require_buyer
 from app.models.cart import CartItem
 from app.models.order import Order, OrderItem
 from app.models.animal import Animal
-from app.schemas.order import (
-    OrderCreate,
-    OrderRead,
-)
+from app.schemas.order import OrderRead
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
@@ -56,31 +55,32 @@ async def checkout(
         total_price=0.0,
     )
     session.add(order)
-    await session.flush()  # get order.id without commit
+    await session.flush()  # get order.id
 
     total_price = 0.0
     order_items: List[OrderItem] = []
 
     for item in cart_items:
         animal = await session.get(Animal, item.animal_id)
+
         if not animal or not animal.available:
             raise HTTPException(
                 status_code=400,
                 detail=f"Animal {item.animal_id} is no longer available",
             )
 
-        price = animal.price * item.quantity
-        total_price += price
+        line_price = animal.price * item.quantity
+        total_price += line_price
 
-        order_item = OrderItem(
-            order_id=order.id,
-            animal_id=item.animal_id,
-            quantity=item.quantity,
-            price=animal.price,
+        order_items.append(
+            OrderItem(
+                order_id=order.id,
+                animal_id=item.animal_id,
+                quantity=item.quantity,
+                price=animal.price,
+            )
         )
-        order_items.append(order_item)
 
-        # Optional: mark animal unavailable if one-off sale
         animal.available = False
         session.add(animal)
 
@@ -106,6 +106,4 @@ async def list_my_orders(
 
     stmt = select(Order).where(Order.buyer_id == buyer_id)
     result = await session.exec(stmt)
-    orders = result.scalars().all()
-
-    return orders
+    return result.scalars().all()

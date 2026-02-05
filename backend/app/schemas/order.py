@@ -1,45 +1,42 @@
-# app/schemas/cart.py
+# app/schemas/order.py
 
-"""
-Pydantic schemas for Cart / CartItem
-
-Responsibilities:
-- Define request/response payloads for cart operations
-- Keep schemas lean; no DB logic
-- Separate Create, Update, and Read payloads
-"""
-
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
-from pydantic import BaseModel, Field, conint, confloat
+from pydantic import BaseModel, Field, confloat
 
 
-class CartItemCreate(BaseModel):
-    """
-    Payload for adding an item to the cart.
-    """
-    animal_id: int
-    quantity: conint(gt=0) = 1
-
-
-class CartItemUpdate(BaseModel):
-    """
-    Payload for updating an existing cart item.
-    All fields optional — only provided fields will be applied.
-    """
-    quantity: Optional[conint(gt=0)] = None
-    price: Optional[confloat(ge=0.0)] = None
-
-
-class CartItemRead(BaseModel):
-    """
-    Representation returned by the API for a cart item.
-    """
+# ----------------------------
+# OrderItem Schemas (READ ONLY)
+# ----------------------------
+class OrderItemRead(BaseModel):
     id: int
-    buyer_id: int
+    order_id: int
     animal_id: int
     quantity: int
     price: float
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        orm_mode = True
+
+
+# ----------------------------
+# Order Schemas
+# ----------------------------
+class OrderUpdate(BaseModel):
+    status: Optional[str] = Field(default=None)  # pending, confirmed, paid, rejected
+    is_paid: Optional[bool] = None
+    total_price: Optional[confloat(ge=0.0)] = None
+
+
+class OrderRead(BaseModel):
+    id: int
+    buyer_id: int
+    status: str
+    total_price: float
+    is_paid: bool
+    items: List[OrderItemRead] = []
     created_at: datetime
     updated_at: Optional[datetime] = None
 
