@@ -1,22 +1,22 @@
 # app/models/cart.py
 
 """
-SQLModel model for CartItem
+SQLModel model for Cart Items
 
 Responsibilities:
 - Track items a buyer has added before checkout
 - Link each cart item to a buyer (User) and an animal
-- Keep table lean; no business logic
+- Keep table lean; no business logic here
 """
 
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
 from sqlmodel import SQLModel, Field, Relationship
 from sqlalchemy import Column, DateTime, Float, func
 
 if TYPE_CHECKING:
-    from app.models.user import User
-    from app.models.animal import Animal
+    from app.models.user import User  # type: ignore
+    from app.models.animal import Animal  # type: ignore
 
 
 class CartItem(SQLModel, table=True):
@@ -26,7 +26,7 @@ class CartItem(SQLModel, table=True):
     buyer_id: int = Field(foreign_key="users.id", nullable=False, index=True)
     animal_id: int = Field(foreign_key="animals.id", nullable=False, index=True)
     quantity: int = Field(default=1)
-    price: float = Field(default=0.0)  # store price at time of adding to cart
+    price: float = Field(default=0.0)
 
     created_at: datetime = Field(
         default_factory=datetime.utcnow,
