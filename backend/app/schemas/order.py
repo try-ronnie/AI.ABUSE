@@ -1,44 +1,67 @@
-# app/schemas/order.py
+# app/models/order.py
 
-from typing import Optional, List
+"""
+SQLModel models for Orders & OrderItems
+
+Responsibilities:
+- Define the Order table (buyer orders)
+- Define OrderItem table (items within an order)
+- Track relationships to Animal and User
+- Keep models lean; no business logic
+"""
+
+from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
-from pydantic import BaseModel, Field, confloat
+from sqlmodel import SQLModel, Field, Relationship
+from sqlalchemy import Column, DateTime, Float, String, Boolean, func
+
+if TYPE_CHECKING:
+    from app.models.user import User  # type: ignore
+    from app.models.animal import Animal  # type: ignore
 
 
-# ----------------------------
-# OrderItem Schemas (READ ONLY)
-# ----------------------------
-class OrderItemRead(BaseModel):
-    id: int
-    order_id: int
-    animal_id: int
-    quantity: int
-    price: float
-    created_at: datetime
-    updated_at: Optional[datetime] = None
+class Order(SQLModel, table=True):
+    __tablename__ = "orders"
 
-    class Config:
-        orm_mode = True
+    id: Optional[int] = Field(default=None, primary_key=True)
+    buyer_id: int = Field(foreign_key="users.id", nullable=False, index=True)
+    status: str = Field(default="pending", index=True)  # pending, confirmed, rejected, paid
+    total_price: float = Field(default=0.0)
+    is_paid: bool = Field(default=False)
 
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        sa_column=Column(DateTime(timezone=True), server_default=func.now())
+    )
+    updated_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        sa_column=Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
+    )
 
-# ----------------------------
-# Order Schemas
-# ----------------------------
-class OrderUpdate(BaseModel):
-    status: Optional[str] = Field(default=None)  # pending, confirmed, paid, rejected
-    is_paid: Optional[bool] = None
-    total_price: Optional[confloat(ge=0.0)] = None
+    # Relationships
+    buyer: Optional["User"] = Relationship(back_populates="orders")
+    items: Optional[List["OrderItem"]] = Relationship(back_populates="order")
 
 
-class OrderRead(BaseModel):
-    id: int
-    buyer_id: int
-    status: str
-    total_price: float
-    is_paid: bool
-    items: List[OrderItemRead] = []
-    created_at: datetime
-    updated_at: Optional[datetime] = None
+class OrderItem(SQLModel, table=True):
+    __tablename__ = "order_items"
 
-    class Config:
-        orm_mode = True
+    id: Optional[int] = Field(default=None, primary_key=True)
+    order_id: int = Field(foreign_key="orders.id", nullable=False, index=True)
+    animal_id: int = Field(foreign_key="animals.id", nullable=False, index=True)
+    quantity: int = Field(default=1)
+    price: float = Field(default=0.0)  # capture price at time of order
+
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        sa_column=Column(DateTime(timezone=True), server_default=func.now())
+    )
+    updated_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        sa_column=Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
+    )
+
+    # Relationships
+    order: Optional["Order"] = Relationship(back_populates="items")
+    animal: Optional["Animal"] = Relationship(back_populates="order_items")
+
