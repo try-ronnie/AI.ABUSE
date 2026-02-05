@@ -1,6 +1,6 @@
 # app/services/order_service.py
 
-from typing import List, Optional
+from typing import List
 from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,33 +12,32 @@ from app.schemas.order import OrderCreate, OrderUpdate
 
 class OrderService:
     """
-    Service layer for handling orders, checkout, and order items.
+    Service layer for handling Orders and OrderItems
     """
 
     def __init__(self, session: AsyncSession):
         self.session = session
 
     # -----------------------------
-    # Create / Checkout
+    # Checkout cart into an order
     # -----------------------------
-    async def checkout(self, buyer_id: int) -> Optional[Order]:
-        """
-        Converts a buyer's cart into an order with order items.
-        Marks animals as unavailable if one-off sale.
-        Clears cart items after checkout.
-        """
+    async def checkout_cart(self, buyer_id: int) -> Order:
         # Fetch cart items
         stmt = select(CartItem).where(CartItem.buyer_id == buyer_id)
         result = await self.session.exec(stmt)
         cart_items = result.scalars().all()
 
         if not cart_items:
-            return None
+            raise ValueError("Cart is empty")
 
-        # Create Order
-        order = Order(buyer_id=buyer_id, status="pending", is_paid=False, total_price=0.0)
+        order = Order(
+            buyer_id=buyer_id,
+            status="pending",
+            is_paid=False,
+            total_price=0.0,
+        )
         self.session.add(order)
-        await self.session.flush()  # assign order.id
+        await self.session.flush()  # populate order.id
 
         total_price = 0.0
         order_items: List[OrderItem] = []
@@ -46,20 +45,19 @@ class OrderService:
         for item in cart_items:
             animal = await self.session.get(Animal, item.animal_id)
             if not animal or not animal.available:
-                continue  # skip unavailable items
+                raise ValueError(f"Animal {item.animal_id} is no longer available")
 
-            price = animal.price * item.quantity
-            total_price += price
+            total_price += animal.price * item.quantity
 
             order_item = OrderItem(
                 order_id=order.id,
                 animal_id=item.animal_id,
                 quantity=item.quantity,
-                price=animal.price,
+                price=float(animal.price),
             )
             order_items.append(order_item)
 
-            # Mark animal unavailable for one-off sale
+            # Optionally mark animal unavailable
             animal.available = False
             self.session.add(animal)
 
@@ -72,29 +70,13 @@ class OrderService:
 
         await self.session.commit()
         await self.session.refresh(order)
+
         return order
 
     # -----------------------------
-    # Fetch
+    # List all orders for a buyer
     # -----------------------------
-    async def get_order(self, order_id: int) -> Optional[Order]:
-        stmt = select(Order).where(Order.id == order_id)
-        result = await self.session.exec(stmt)
-        return result.scalar_one_or_none()
-
-    async def list_orders_for_buyer(self, buyer_id: int) -> List[Order]:
+    async def list_orders(self, buyer_id: int) -> List[Order]:
         stmt = select(Order).where(Order.buyer_id == buyer_id)
         result = await self.session.exec(stmt)
         return result.scalars().all()
-
-    # -----------------------------
-    # Update
-    # -----------------------------
-    async def update_order(self, order: Order, updates: OrderUpdate) -> Order:
-        update_data = updates.model_dump(exclude_unset=True)
-        for key, value in update_data.items():
-            setattr(order, key, value)
-        self.session.add(order)
-        await self.session.commit()
-        await self.session.refresh(order)
-        return order
