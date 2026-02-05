@@ -1,29 +1,21 @@
-from typing import List
-from pydantic import BaseSettings, Field, validator
+# app/core/config.py
+
+"""
+Project configuration
+"""
+
+from pydantic import BaseSettings
 
 
 class Settings(BaseSettings):
-    """
-    Farmart backend configuration.
-
-    Loads environment variables (supports .env file).
-    CORS_ORIGINS accepts:
-      - a list
-      - a comma-separated string
-      - "*" literal
-    """
-
-    PROJECT_NAME: str = "Farmart"
-    VERSION: str = "0.1.0"
-    ENVIRONMENT: str = "development"
-    DEBUG: bool = True
-
-    SERVER_HOST: str = "0.0.0.0"
-    SERVER_PORT: int = 8000
-
     DATABASE_URL: str
-    DB_ECHO: bool = False
+    JWT_SECRET_KEY: str = "supersecretkey"
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+    REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
 
-    CORS_ORIGINS: List[str] = Field(default_factory=lambda: ["*"])
-    ALLOWED_HOSTS: List[str] = Field(default_factory=lambda: ["*"])
-    ENABLE_GZIP: bool = Tru_
+    class Config:
+        env_file = ".env"
+
+
+settings = Settings()
