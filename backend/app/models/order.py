@@ -11,7 +11,7 @@ Responsibilities:
 """
 
 from typing import Optional, List, TYPE_CHECKING
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlmodel import SQLModel, Field, Relationship
 from sqlalchemy import Column, DateTime, func
 
@@ -31,11 +31,11 @@ class Order(SQLModel, table=True):
     is_paid: bool = Field(default=False)
 
     created_at: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), server_default=func.now())
     )
     updated_at: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
     )
 
@@ -55,11 +55,11 @@ class OrderItem(SQLModel, table=True):
     price: float = Field(default=0.0)  # capture price at time of order
 
     created_at: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), server_default=func.now())
     )
     updated_at: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
     )
 

@@ -10,7 +10,7 @@ Responsibilities:
 """
 
 from typing import Optional, TYPE_CHECKING
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlmodel import SQLModel, Field, Relationship
 from sqlalchemy import Column, DateTime, func
 
@@ -28,7 +28,7 @@ class Payment(SQLModel, table=True):
     method: str = Field(default="mpesa")    # mpesa, card, bank, etc.
 
     created_at: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), server_default=func.now())
     )
     updated_at: Optional[datetime] = Field(

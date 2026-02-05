@@ -5,7 +5,7 @@ User and Farmer models
 """
 
 from typing import Optional, List, TYPE_CHECKING
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlmodel import SQLModel, Field, Relationship
 from sqlalchemy import Column, String, Boolean, DateTime, func
 
@@ -44,8 +44,8 @@ class Farmer(SQLModel, table=True):
     location: Optional[str] = None
     bio: Optional[str] = None
 
-    created_at: datetime = Field(default_factory=datetime.utcnow, sa_column=Column(DateTime(timezone=True), server_default=func.now()))
-    updated_at: datetime = Field(default_factory=datetime.utcnow, sa_column=Column(DateTime(timezone=True), onupdate=func.now(), nullable=True))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), sa_column=Column(DateTime(timezone=True), server_default=func.now()))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), sa_column=Column(DateTime(timezone=True), onupdate=func.now(), nullable=True))
 
     # Relationships
     user: Optional[User] = Relationship(back_populates="farmer_profile")

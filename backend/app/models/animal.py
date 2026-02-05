@@ -11,7 +11,7 @@ Responsibilities:
 """
 
 from typing import Optional, List, TYPE_CHECKING
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlmodel import SQLModel, Field, Relationship
 from sqlalchemy import Column, String, Float, DateTime, Boolean, func
 
@@ -36,11 +36,11 @@ class Animal(SQLModel, table=True):
     farmer_id: int = Field(foreign_key="farmers.id", nullable=False, index=True)
 
     created_at: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), server_default=func.now())
     )
     updated_at: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
     )
 

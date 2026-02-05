@@ -4,7 +4,7 @@
 JWT, password hashing, and role-based dependencies
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from jose import jwt, JWTError
@@ -31,7 +31,7 @@ def verify_password(password: str, hashed: str) -> bool:
 
 
 # OAuth2 bearer
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
 class TokenPayload(BaseModel):
@@ -41,7 +41,7 @@ class TokenPayload(BaseModel):
 
 def _create_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     expire = now + (expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire, "iat": now, "sub": str(data.get("sub", ""))})
     return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
