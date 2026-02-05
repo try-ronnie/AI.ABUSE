@@ -1,59 +1,39 @@
 # app/api/v1/users.py
-
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
+
 from app.core.database import get_session
-from app.core.security import get_current_user
-from app.models.user import User
-from app.schemas.user import UserRead, UserUpdate
+from app.core.security import hash_password
+from app.models.user import User, Farmer
+from app.schemas.user import UserCreate, UserRead, FarmerCreate, FarmerRead
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
-# ----------------------------
-# Get current user's profile
-# ----------------------------
-@router.get("/me", response_model=UserRead)
-async def get_my_profile(user=Depends(get_current_user)):
+@router.post("/", response_model=UserRead, status_code=status.HTTP_201_CREATED)
+async def create_user(payload: UserCreate, db: AsyncSession = Depends(get_session)):
+    stmt = select(User).where(User.email == payload.email)
+    result = await db.execute(stmt)
+    existing = result.scalar_one_or_none()
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    user = User(
+        name=payload.name,
+        email=payload.email,
+        password_hash=hash_password(payload.password),
+        role=payload.role,
+    )
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
     return user
 
 
-# ----------------------------
-# Update current user's profile
-# ----------------------------
-@router.patch("/me", response_model=UserRead)
-async def update_my_profile(
-    payload: UserUpdate,
-    user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_session),
-):
-    changed = False
-    for field, value in payload.dict(exclude_unset=True).items():
-        setattr(user, field, value)
-        changed = True
-
-    if changed:
-        db.add(user)
-        await db.commit()
-        await db.refresh(user)
-
-    return user
-
-
-# ----------------------------
-# Optional: List all users (admin-only)
-# ----------------------------
 @router.get("/", response_model=List[UserRead])
-async def list_users(
-    user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_session),
-):
-    if getattr(user, "role", "user") != "admin":
-        raise HTTPException(status_code=403, detail="Admins only")
-
+async def list_users(db: AsyncSession = Depends(get_session)):
     stmt = select(User)
-    result = await db.exec(stmt)
-    users = result.scalars().all()
-    return users
+    result = await db.execute(stmt)
+    return result.scalars().all()
