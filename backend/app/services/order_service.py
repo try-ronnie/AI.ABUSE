@@ -97,3 +97,13 @@ class OrderService:
         await self.session.commit()
         await self.session.refresh(order)
         return order
+
+"""
+OrderService
+
+Responsibilities:
+- Handle all business logic related to Orders & OrderItems
+- Interact with the database using AsyncSession
+- Operate on models: Order, OrderItem, Animal, CartItem
+- Keep service layer focused on DB/business logic; no FastAPI routing here
+"""
