@@ -1,3 +1,5 @@
+# app/models/order.py
+
 """
 SQLModel models for Orders & OrderItems
 
@@ -7,6 +9,7 @@ Responsibilities:
 - Track relationships to Animal and User
 - Keep models lean; no business logic
 """
+
 from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
 from sqlmodel import SQLModel, Field, Relationship
@@ -28,11 +31,11 @@ class Order(SQLModel, table=True):
 
     created_at: datetime = Field(
         default_factory=datetime.utcnow,
-        sa_column=Column(DateTime(timezone=True), server_default=func.now()),
+        sa_column=Column(DateTime(timezone=True), server_default=func.now())
     )
     updated_at: datetime = Field(
         default_factory=datetime.utcnow,
-        sa_column=Column(DateTime(timezone=True), onupdate=func.now(), nullable=True),
+        sa_column=Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
     )
 
     # Relationships
@@ -51,11 +54,11 @@ class OrderItem(SQLModel, table=True):
 
     created_at: datetime = Field(
         default_factory=datetime.utcnow,
-        sa_column=Column(DateTime(timezone=True), server_default=func.now()),
+        sa_column=Column(DateTime(timezone=True), server_default=func.now())
     )
     updated_at: datetime = Field(
         default_factory=datetime.utcnow,
-        sa_column=Column(DateTime(timezone=True), onupdate=func.now(), nullable=True),
+        sa_column=Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
     )
 
     # Relationships
