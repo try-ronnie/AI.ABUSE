@@ -4,19 +4,22 @@
 Order endpoints
 - Checkout cart to order
 - List buyer orders
+- List farmer orders (for their animals)
 """
 
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from pydantic import BaseModel
 
 from app.core.database import get_session
-from app.core.security import require_buyer
+from app.core.security import require_buyer, require_farmer
 from app.models.cart import CartItem
 from app.models.order import Order, OrderItem
 from app.models.animal import Animal
 from app.schemas.order import OrderRead
+from app.services.order_service import OrderService
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
@@ -85,17 +88,71 @@ async def list_my_orders(user=Depends(require_buyer), session: AsyncSession = De
     return orders
 
 
-@router.get("/{order_id}", response_model=OrderRead)
-async def get_order(
-    order_id: int,
-    user=Depends(require_buyer),
+@router.get("/farmer/my-orders", response_model=List[OrderRead])
+async def list_farmer_orders(
+    user=Depends(require_farmer),
     session: AsyncSession = Depends(get_session)
 ):
-    """Get a specific order by ID"""
-    buyer_id = get_user_id(user)
+    """List all orders containing this farmer's animals"""
+    farmer_id = get_user_id(user)
     
+    # Get farmer profile
+    from app.models.user import Farmer
+    stmt = select(Farmer).where(Farmer.user_id == farmer_id)
+    result = await session.execute(stmt)
+    farmer = result.scalar_one_or_none()
+    
+    if not farmer:
+        raise HTTPException(status_code=400, detail="Farmer profile not found")
+    
+    service = OrderService(session)
+    orders = await service.list_farmer_orders(farmer.id)
+    return orders
+
+
+@router.patch("/{order_id}/status", response_model=OrderRead)
+async def update_order_status(
+    order_id: int,
+    status_data: OrderStatusUpdate,
+    user=Depends(require_farmer),
+    session: AsyncSession = Depends(get_session)
+):
+    """Update order status (confirm or reject) - farmer only"""
+    farmer_id = get_user_id(user)
+    
+    # Get farmer profile
+    from app.models.user import Farmer
+    stmt = select(Farmer).where(Farmer.user_id == farmer_id)
+    result = await session.execute(stmt)
+    farmer = result.scalar_one_or_none()
+    
+    if not farmer:
+        raise HTTPException(status_code=400, detail="Farmer profile not found")
+    
+    # Get order and check if it contains farmer's animals
     order = await session.get(Order, order_id)
-    if not order or order.buyer_id != buyer_id:
+    if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     
+    # Check if any order item belongs to this farmer
+    stmt = select(OrderItem).join(Animal).where(
+        OrderItem.order_id == order_id,
+        Animal.farmer_id == farmer.id
+    )
+    result = await session.execute(stmt)
+    farmer_items = result.scalars().all()
+    
+    if not farmer_items:
+        raise HTTPException(status_code=403, detail="Not authorized to update this order")
+    
+    # Update order status
+    order.status = status_data.status
+    session.add(order)
+    await session.commit()
+    await session.refresh(order)
+    
     return order
+
+
+class OrderStatusUpdate(BaseModel):
+    status: str

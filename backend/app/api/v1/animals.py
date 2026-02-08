@@ -32,14 +32,29 @@ def get_user_id(user) -> int:
 async def list_animals(
     available_only: bool = Query(True, description="Filter by availability"),
     species: Optional[str] = Query(None, description="Filter by species"),
+    breed: Optional[str] = Query(None, description="Filter by breed"),
+    min_age: Optional[int] = Query(None, description="Minimum age in months"),
+    max_age: Optional[int] = Query(None, description="Maximum age in months"),
+    search: Optional[str] = Query(None, description="Search in name and description"),
     db: AsyncSession = Depends(get_session)
 ):
-    """List all animals (public endpoint)"""
+    """List all animals with filtering options"""
     stmt = select(Animal)
     if available_only:
         stmt = stmt.where(Animal.available == True)
     if species:
         stmt = stmt.where(Animal.species == species)
+    if breed:
+        stmt = stmt.where(Animal.breed.ilike(f"%{breed}%"))
+    if min_age is not None:
+        stmt = stmt.where(Animal.age >= min_age)
+    if max_age is not None:
+        stmt = stmt.where(Animal.age <= max_age)
+    if search:
+        stmt = stmt.where(
+            (Animal.name.ilike(f"%{search}%")) | 
+            (Animal.description.ilike(f"%{search}%"))
+        )
     result = await db.execute(stmt)
     animals = result.scalars().all()
     return animals

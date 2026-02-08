@@ -71,3 +71,19 @@ class OrderService:
         await self.session.commit()
         await self.session.refresh(order)
         return order
+
+    async def list_farmer_orders(self, farmer_id: int) -> List[Order]:
+        """Get all orders containing animals owned by this farmer"""
+        # Join OrderItem -> Animal to get farmer_id, then get unique orders
+        stmt = select(OrderItem).join(Animal).where(Animal.farmer_id == farmer_id)
+        result = await self.session.execute(stmt)
+        order_items = result.scalars().all()
+        
+        # Get unique order IDs
+        order_ids = list(set([item.order_id for item in order_items]))
+        if not order_ids:
+            return []
+        
+        stmt = select(Order).where(Order.id.in_(order_ids))
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
