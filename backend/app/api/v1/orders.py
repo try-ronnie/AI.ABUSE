@@ -154,5 +154,52 @@ async def update_order_status(
     return order
 
 
+@router.post("/{order_id}/pay", response_model=OrderRead)
+async def pay_order(
+    order_id: int,
+    payment_data: PaymentRequest,
+    user=Depends(require_buyer),
+    session: AsyncSession = Depends(get_session)
+):
+    """Mark order as paid (simulates payment completion)"""
+    buyer_id = get_user_id(user)
+    
+    # Get order
+    order = await session.get(Order, order_id)
+    if not order or order.buyer_id != buyer_id:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    if order.is_paid:
+        raise HTTPException(status_code=400, detail="Order already paid")
+    
+    if order.status == 'rejected':
+        raise HTTPException(status_code=400, detail="Cannot pay for rejected order")
+    
+    # Simulate payment processing
+    order.is_paid = True
+    order.status = "paid"
+    session.add(order)
+    
+    # Create payment record
+    from app.models.payment import Payment
+    payment = Payment(
+        order_id=order_id,
+        amount=order.total_price,
+        method=payment_data.method,
+        status="completed",
+        transaction_id=f"TXN-{order_id}-{int(__import__('time').time())}"
+    )
+    session.add(payment)
+    
+    await session.commit()
+    await session.refresh(order)
+    
+    return order
+
+
+class PaymentRequest(BaseModel):
+    method: str = "M-Pesa"
+
+
 class OrderStatusUpdate(BaseModel):
     status: str
