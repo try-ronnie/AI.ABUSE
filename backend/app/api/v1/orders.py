@@ -21,6 +21,15 @@ from app.models.animal import Animal
 from app.schemas.order import OrderRead
 from app.services.order_service import OrderService
 
+# Pydantic models for request bodies
+class OrderStatusUpdate(BaseModel):
+    status: str
+
+
+class PaymentRequest(BaseModel):
+    method: str = "M-Pesa"
+
+
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
 
