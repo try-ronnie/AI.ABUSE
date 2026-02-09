@@ -16,10 +16,10 @@ from sqlalchemy import select
 
 from app.core.database import get_session
 from app.core.config import settings
-from app.core.security import verify_password, hash_password, create_access_token, create_refresh_token
+from app.core.security import verify_password, hash_password, create_access_token, create_refresh_token, decode_token
 from app.models.user import User, Farmer
 from app.schemas.user import UserCreate, UserRead
-from app.schemas.auth import Token
+from app.schemas.auth import Token, RefreshTokenRequest
 
 logger = logging.getLogger(__name__)
 
@@ -104,6 +104,45 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSessi
     
     logger.info(f"Login successful for user: {user.id} - {user.email}")
 
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer"
+    }
+
+
+@router.post("/refresh", response_model=Token)
+async def refresh_token(
+    payload: RefreshTokenRequest,
+    db: AsyncSession = Depends(get_session)
+):
+    """Refresh access token using refresh token"""
+    try:
+        token_data = decode_token(payload.refresh_token)
+        user_id = int(token_data.get("sub", 0))
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    stmt = select(User).where(User.id == user_id)
+    result = await db.execute(stmt)
+    user = result.scalar_one_or_none()
+    
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found or inactive",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    access_token = create_access_token(
+        {"sub": str(user.id), "roles": [user.role]},
+        timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
+    
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,

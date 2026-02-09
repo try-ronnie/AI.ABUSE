@@ -18,3 +18,8 @@ class TokenPayload(BaseModel):
     """Token payload schema"""
     sub: str
     roles: list[str] = []
+
+
+class RefreshTokenRequest(BaseModel):
+    """Refresh token request schema"""
+    refresh_token: str
