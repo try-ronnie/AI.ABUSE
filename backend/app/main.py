@@ -75,6 +75,18 @@ def create_app() -> FastAPI:
     app.include_router(orders.router, prefix="/api/v1")
     app.include_router(payments.router, prefix="/api/v1")
 
+    # Root endpoint - API information
+    @app.get("/", tags=["root"])
+    async def root():
+        """API root - returns service information"""
+        return {
+            "service": settings.PROJECT_NAME,
+            "version": settings.VERSION,
+            "description": "Farmart - Direct farm animal marketplace",
+            "docs": "/docs",
+            "health": "/health"
+        }
+
     # Health check
     @app.get("/health", tags=["health"])
     async def health_check():

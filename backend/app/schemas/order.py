@@ -62,7 +62,7 @@ class OrderRead(BaseModel):
     is_paid: bool
     created_at: datetime
     updated_at: Optional[datetime] = None
-    items: List[OrderItemRead] = []
+    items: Optional[List[OrderItemRead]] = None
 
     model_config = {"from_attributes": True}
 

@@ -11,6 +11,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from pydantic import BaseModel
 
 from app.core.database import get_session
@@ -18,7 +19,7 @@ from app.core.security import require_buyer, require_farmer
 from app.models.cart import CartItem
 from app.models.order import Order, OrderItem
 from app.models.animal import Animal
-from app.schemas.order import OrderRead
+from app.schemas.order import OrderRead, OrderSummary
 from app.services.order_service import OrderService
 
 # Pydantic models for request bodies
@@ -83,7 +84,12 @@ async def checkout(user=Depends(require_buyer), session: AsyncSession = Depends(
         await session.delete(item)
 
     await session.commit()
-    await session.refresh(order)
+    
+    # Refresh order with items loaded
+    stmt = select(Order).options(selectinload(Order.items)).where(Order.id == order.id)
+    result = await session.execute(stmt)
+    order = result.scalar_one()
+    
     return order
 
 
@@ -91,13 +97,13 @@ async def checkout(user=Depends(require_buyer), session: AsyncSession = Depends(
 async def list_my_orders(user=Depends(require_buyer), session: AsyncSession = Depends(get_session)):
     """List all orders for the current user"""
     buyer_id = get_user_id(user)
-    stmt = select(Order).where(Order.buyer_id == buyer_id)
+    stmt = select(Order).options(selectinload(Order.items)).where(Order.buyer_id == buyer_id)
     result = await session.execute(stmt)
     orders = result.scalars().all()
     return orders
 
 
-@router.get("/farmer/my-orders", response_model=List[OrderRead])
+@router.get("/farmer/my-orders", response_model=List[OrderSummary])
 async def list_farmer_orders(
     user=Depends(require_farmer),
     session: AsyncSession = Depends(get_session)
